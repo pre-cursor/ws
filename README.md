@@ -33,9 +33,9 @@ to install `ws` to `bin/ws` of the directory specified in the environment variab
 
 ### Third Party Installers
 
-On Linux and macOS, [ws-get](https://github.com/continuul/ws-get) allows installation directly from GitHub; for instance:
+On Linux and macOS, [ws-get](https://github.com/pre-cursor/ws-get) allows installation directly from GitHub; for instance:
 
-    curl -L https://raw.githubusercontent.com/continuul/ws-get/master/bin/ws-get | bash
+    curl -L https://raw.githubusercontent.com/pre-cursor/ws-get/master/bin/ws-get | bash
 
 ws-get sets `WS_PREFIX` to `$HOME/ws`, installs `ws` to `$HOME/ws/bin`, modifies the initialization files of supported shells to export `WS_PREFIX` and add `$HOME/ws/bin` to the `PATH`.
 
