@@ -3,7 +3,10 @@
 
 
 <a name="v0.2.0"></a>
-## [v0.2.0] - 0001-01-01
+## [v0.2.0] - 2020-05-12
+### Bug Fixes
+- Change changelog config to include repo url.
+
 
 <a name="v0.1.0"></a>
 ## v0.1.0 - 2020-05-12
@@ -12,5 +15,5 @@
 - Transfer to organization.
 
 
-[Unreleased]: /compare/v0.2.0...HEAD
-[v0.2.0]: /compare/v0.1.0...v0.2.0
+[Unreleased]: https://github.com/pre-cursor/ws/compare/v0.2.0...HEAD
+[v0.2.0]: https://github.com/pre-cursor/ws/compare/v0.1.0...v0.2.0
