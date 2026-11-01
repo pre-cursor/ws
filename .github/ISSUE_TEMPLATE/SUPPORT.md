@@ -25,5 +25,10 @@ Add more explanation and useful information or commentary as needed.
 ## Configuration Details
 
 <!--
-Provide processor architecture and OS information.
+Run these commands and copy in the info.
 -->
+
+```bash
+$ w doctor
+?
+```

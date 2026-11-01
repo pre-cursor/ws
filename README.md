@@ -15,6 +15,17 @@ Workspace management: no subshells, no profile setup, **simply extensible**.
     - [Miscellaneous](#miscellaneous)
     - [Optional Environment Variables](#optional-environment-variables)
 
+## Prerequisites
+
+If you are on Mac you MUST have these dependencies installed first:
+
+- homebrew
+    - coreutils
+    - tree
+- git
+- golang (optional)
+- java (optional)
+
 ## Installation
 
 The easiest way to install `ws` is through the web:
@@ -33,9 +44,9 @@ to install `ws` to `bin/ws` of the directory specified in the environment variab
 
 ### Third Party Installers
 
-On Linux and macOS, [ws-get](https://github.com/pre-cursor/ws-get) allows installation directly from GitHub; for instance:
+On Linux and macOS, [ws-get](https://github.com/continuul/ws-get) allows installation directly from GitHub; for instance:
 
-    curl -L https://raw.githubusercontent.com/pre-cursor/ws-get/master/bin/ws-get | bash
+    curl -L https://raw.githubusercontent.com/continuul/ws-get/master/bin/ws-get | bash
 
 ws-get sets `WS_PREFIX` to `$HOME/ws`, installs `ws` to `$HOME/ws/bin`, modifies the initialization files of supported shells to export `WS_PREFIX` and add `$HOME/ws/bin` to the `PATH`.
 
@@ -82,16 +93,6 @@ already exists and you want to rename it to `<target>`:
 Remove some cached versions:
 
     ws rm buffalo
-
-Removing all local workspaces except the current workspace:
-
-    ws prune
-
-Remove the installed node and npm (does not affect the cached version). This can be useful
-to revert to the system version of node (if in a different location), or if you no longer
-wish to use node and npm, or are switching to a different way of managing them.
-
-    ws uninstall
 
 ## Miscellaneous
 

@@ -40,7 +40,7 @@ function echo_red() {
 # Setup and state
 #
 
-VERSION="v0.1.0"
+VERSION="v1.7.0"
 
 WS_PREFIX="${WS_PREFIX-$HOME/ws}"
 WS_PREFIX=${WS_PREFIX%/}
@@ -130,15 +130,12 @@ Commands:
   ws which <workspace>            Output path for local workspace
   ws exec <work> <cmd> [args...]  Execute command with modified PATH, so downloaded applications first
   ws rm <workspace ...>           Remove the given workspace(s)
-  ws prune                        Remove all created workspaces except the activated workspace
   ws ls                           Output list of workspaces
-  ws uninstall                    Remove the installed ws
 
 Options:
 
   -V, --version         Output version of ws
   -h, --help            Display help information
-  -q, --quiet           Disable curl output (if available)
 
 Aliases:
 
@@ -162,7 +159,7 @@ err_no_workspaces_print_help() {
 #
 
 function next_local_workspace() {
-  display_local_workspaces | grep "$1" -A 1 | tail -n 1
+  display_local_workspaces | grep -F -x -A 1 -- "$1" | tail -n 1
 }
 
 #
@@ -171,7 +168,7 @@ function next_local_workspace() {
 #
 
 function prev_local_workspace() {
-  display_local_workspaces | grep "$1" -B 1 | head -n 1
+  display_local_workspaces | grep -F -x -B 1 -- "$1" | head -n 1
 }
 
 #
@@ -337,10 +334,28 @@ erase_line() {
 
 activate() {
   local workspace="$1"
+  if ! validate_workspace_name "${workspace}"; then
+    printf "ws: %s: Invalid workspace name\n" "${workspace}" >&2
+    return 1
+  fi
   local dir="$WORKSPACES_DIR/${workspace}"
+  if [[ ! -d "${dir}/src" ]]; then
+    printf "ws: %s: Workspace source directory does not exist\n" "${workspace}" >&2
+    return 1
+  fi
   (( quiet )) || echo "workspace: '$@'"
-  cd "${dir}/src"
-  bash --init-file "${dir}/bin/activate"
+  cd "${dir}/src" || return 1
+
+  local shell_name="${SHELL##*/}"
+
+  if [[ "$shell_name" == "zsh" ]]; then
+    zsh --no-rcs -c "source '${dir}/bin/activate'; exec zsh"
+  elif [[ "$shell_name" == "bash" ]]; then
+    bash --init-file "${dir}/bin/activate"
+  else
+    echo "Unsupported shell: $shell_name"
+    return 1
+  fi
 }
 
 #
@@ -444,9 +459,42 @@ EOF
   rm -f "$dir/ws.lock"
 
   if "$ACTIVATE" ; then
-    activate "${workspace}"
+    (
+      shopt -s nullglob
+      for once in ${WS_PREFIX}/etc/*.once; do
+        log once $once
+        . $once
+      done
+      shopt -u nullglob
+
+      shopt -s nullglob
+      for activation in ${WS_PREFIX}/etc/*.activation; do
+        log activation $activation
+        cat << EOF >> $dir/bin/activate
+
+# Template-Start: $(basename $activation .activation)
+EOF
+        cat $activation >> $dir/bin/activate
+        cat << EOF >> $dir/bin/activate
+# Template-End: $(basename $activation .activation)
+EOF
+      done
+      shopt -u nullglob
+
+      activate "${workspace}"
+    )
   fi
   echo
+}
+
+#
+# Synopsis: validate_workspace_name name
+# Returns success if name is a single path component.
+#
+
+function validate_workspace_name() {
+  local name="$1"
+  [[ -n "${name}" && "${name}" != "." && "${name}" != ".." && "${name}" != */* ]]
 }
 
 #
@@ -455,12 +503,25 @@ EOF
 
 function move_workspace() {
   [[ $# -ne 2 ]] && abort "both source and target workspaces required"
+  if ! validate_workspace_name "$1"; then
+    printf "ws mv: %s: Invalid workspace name\n" "$1" >&2
+    return 1
+  fi
+  if ! validate_workspace_name "$2"; then
+    printf "ws mv: %s: Invalid workspace name\n" "$2" >&2
+    return 1
+  fi
   local source="${WORKSPACES_DIR}/${1}"
   if [[ -s "${source}" ]]; then
     local target="${WORKSPACES_DIR}/${2}"
+    if [[ -L "${target}" ]]; then
+      printf "Error: target workspace must not be a symbolic link: '%s'\n" "$2" >&2
+      return 1
+    fi
     mv "${source}" "${target}"
   else
-    echo "$1 (${source}) not in workspaces directory"
+    printf "Error: %s (%s) not in workspaces directory\n" "$1" "${source}" >&2
+    return 1
   fi
 }
 
@@ -470,36 +531,26 @@ function move_workspace() {
 
 function remove_workspaces() {
   [[ -z "$1" ]] && abort "workspace(s) required"
+  local result=0
   while [[ $# -ne 0 ]]; do
     local workspace
     workspace="$1"
-    if [[ -n "${workspace}" ]]; then
-      local dir="${WORKSPACES_DIR}/${workspace}"
-      if [[ -s "${dir}" ]]; then
-        rm -rf "${dir}"
-      else
-        echo "$1 (${workspace}) not in workspaces directory"
-      fi
+    if ! validate_workspace_name "${workspace}"; then
+      printf "ws rm: %s: Invalid workspace name\n" "${workspace}" >&2
+      result=1
+      shift
+      continue
+    fi
+    local dir="${WORKSPACES_DIR}/${workspace}"
+    if [[ -s "${dir}" ]]; then
+      rm -rf "${dir}" || result=1
     else
-      echo "No workspace found for '$1'"
+      printf "ws rm: %s: No such workspace\n" "${workspace}" >&2
+      result=1
     fi
     shift
   done
-}
-
-#
-# Synopsis: prune_cache
-#
-
-function prune_cache() {
-  set_active_workspace
-
-  for folder_and_workspace in $(display_workspaces_paths); do
-    if [[ "${folder_and_workspace}" != "${g_active_workspace}" ]]; then
-      echo "${folder_and_workspace}"
-      rm -rf "${WORKSPACES_DIR:?}/${folder_and_workspace}"
-    fi
-  done
+  return "${result}"
 }
 
 #
@@ -668,7 +719,6 @@ else
       doctor) show_diagnostics; exit ;;
       mv|move) shift; move_workspace "$@"; exit ;;
       rm|-) shift; remove_workspaces "$@"; exit ;;
-      prune) prune_cache; exit ;;
       ls|list) display_workspaces_paths; exit ;;
       c|create) shift; create "$1"; exit ;;
       *) create "$1"; exit ;;
