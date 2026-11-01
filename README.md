@@ -1,5 +1,7 @@
 # `ws` – Interactively Manage Your Development Workspaces
 
+It is **STRONGLY SUGGESTED** you move over to **[xws](https://github.com/pre-cursor/xws)** instead.
+
 Workspace management: no subshells, no profile setup, **simply extensible**.
 
 ![usage animation](img/ws.gif)
